@@ -1,8 +1,9 @@
-import type { Token } from "../types/token.types";
+import type { Token, SwapFormErrors } from "../../../types/token.types";
 import TokenSelector from "./TokenSelector";
-import AmountInput from "./AmountInput";
-import SwapButton from "./SwapButton";
-import type { SwapFormErrors } from "../types/token.types";
+import AmountInput from "../../ui/AmountInput";
+import SwapButton from "../../ui/SwapButton";
+import SwapArrowsIcon from "../../ui/SwapArrowsIcon";
+import { ExchangeRate } from "./ExchangeRate";
 
 interface SwapFormProps {
   readonly tokens: readonly Token[];
@@ -10,6 +11,7 @@ interface SwapFormProps {
   readonly toCurrency: string;
   readonly fromAmount: string;
   readonly toAmount: string;
+  readonly exchangeRate: number | null;
   readonly errors: SwapFormErrors;
   readonly isSubmitting: boolean;
   readonly onFromCurrencyChange: (c: string) => void;
@@ -25,6 +27,7 @@ export default function SwapForm({
   toCurrency,
   fromAmount,
   toAmount,
+  exchangeRate,
   errors,
   isSubmitting,
   onFromCurrencyChange,
@@ -45,27 +48,11 @@ export default function SwapForm({
     >
       <header className="swap-form__header">
         <h1 className="swap-form__title">
-          <svg
+          <SwapArrowsIcon
             className="swap-form__title-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            aria-hidden="true"
-          >
-            <path
-              d="M7 16V4m0 0L3 8m4-4 4 4"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M17 8v12m0 0 4-4m-4 4-4-4"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+            width={28}
+            height={28}
+          />
           Swap
         </h1>
         <p className="swap-form__subtitle">
@@ -102,24 +89,7 @@ export default function SwapForm({
             aria-label="Switch token direction"
             title="Switch tokens"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              aria-hidden="true"
-            >
-              <path
-                d="M7 16V4m0 0L3 8m4-4 4 4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M17 8v12m0 0 4-4m-4 4-4-4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <SwapArrowsIcon width={18} height={18} />
           </button>
         </div>
 
@@ -137,40 +107,22 @@ export default function SwapForm({
             id="to-amount"
             label="Amount to receive"
             value={toAmount}
-            computedValue={toAmount}
             readOnly
           />
         </div>
 
-        {/* Exchange rate summary */}
-        {fromCurrency && toCurrency && fromAmount && toAmount && (
-          <aside
-            className="exchange-rate"
-            aria-live="polite"
-            aria-label="Exchange rate"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              aria-hidden="true"
-              width={14}
-              height={14}
-            >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 6v6l4 2" strokeLinecap="round" />
-            </svg>
-            <span>
-              1 {fromCurrency} ≈{" "}
-              {(Number(toAmount) / Number(fromAmount)).toFixed(6)} {toCurrency}
-            </span>
-          </aside>
+        {/* Exchange rate — pre-computed in hook */}
+        {exchangeRate !== null && fromCurrency && toCurrency && fromAmount && (
+          <ExchangeRate
+            fromCurrency={fromCurrency}
+            toCurrency={toCurrency}
+            rate={exchangeRate}
+          />
         )}
       </section>
 
       <footer className="swap-form__footer">
-        <SwapButton isLoading={isSubmitting} onClick={() => void onSubmit()} />
+        <SwapButton isLoading={isSubmitting} />
       </footer>
     </form>
   );

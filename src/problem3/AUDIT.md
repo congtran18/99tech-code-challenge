@@ -95,6 +95,17 @@ const WalletPage: React.FC<Props> = (props: Props) => {
 
 ---
 
+### Bug 1.b — Missing `blockchain` property in `WalletBalance`
+
+|              |                                                                                                                                                                                                                                                                     |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Location** | `interface WalletBalance` and `getPriority(balance.blockchain)`                                                                                                                                                                                                     |
+| **Problem**  | `balance.blockchain` is accessed in the `.filter()` and `.sort()` methods, but `blockchain` is not defined in the `WalletBalance` interface. This will cause a strict TypeScript compilation error: `Property 'blockchain' does not exist on type 'WalletBalance'`. |
+| **Fix**      | Add `blockchain: string` (or better, the `Blockchain` type) to the `WalletBalance` interface.                                                                                                                                                                       |
+| **Rule**     | Platinum Rule 3 — Static Typing Correctness.                                                                                                                                                                                                                        |
+
+---
+
 ### Bug 2 — `getPriority` defined inside the component (SRP violation)
 
 |              |                                                                                                                                                                              |
@@ -188,7 +199,8 @@ const WalletPage: React.FC<Props> = (props: Props) => {
 
 | #   | Severity    | Category    | Issue                                                     |
 | --- | ----------- | ----------- | --------------------------------------------------------- |
-| 1   | 🟡 Medium   | Type Safety | `getPriority` accepts `any`                               |
+| 1.a | 🟡 Medium   | Type Safety | `getPriority` accepts `any`                               |
+| 1.b | 🔴 Critical | Type Safety | `blockchain` property missing in `WalletBalance`          |
 | 2   | 🟡 Medium   | Performance | `getPriority` re-created every render                     |
 | 3   | 🟡 Medium   | Performance | `useMemo` depends on unused `prices`                      |
 | 4   | 🔴 Critical | Logic Bug   | `lhsPriority` undefined + inverted filter logic           |
@@ -197,6 +209,7 @@ const WalletPage: React.FC<Props> = (props: Props) => {
 | 7   | 🟡 Medium   | Correctness | `key={index}` breaks reconciliation                       |
 | 8   | 🟢 Minor    | YAGNI       | Empty `Props` interface extension, unused `children`      |
 | 9   | 🟡 Medium   | Edge Case   | `prices[currency]` can be `undefined` → `NaN`             |
+| 10  | 🟢 Minor    | Correctness | `classes.row` used but `classes` is undefined             |
 
 ---
 
@@ -215,5 +228,5 @@ const WalletPage: React.FC<Props> = (props: Props) => {
 ## Suggested Commit Message
 
 ```
-refactor(problem3): fix 9 bugs in WalletPage — type safety, filter logic, memoization, key prop, undefined guard
+refactor(problem3): fix 10 bugs in WalletPage — type safety, filter logic, memoization, key prop, undefined guard
 ```

@@ -1,13 +1,13 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { fetchTokens } from "../services/price.service";
+import { useState, useEffect, useCallback } from "react";
 import { SwapFormSchema } from "../types/token.types";
 import type {
-  Token,
-  FetchState,
   SwapState,
   SwapFormValues,
   SwapFormErrors,
 } from "../types/token.types";
+import { useTokenPrices } from "./useTokenPrices";
+import { useSwapCalculation } from "./useSwapCalculation";
+import type { FetchState } from "../types/token.types";
 
 interface UseCurrencySwapReturn {
   readonly fetchState: FetchState;
@@ -16,54 +16,34 @@ interface UseCurrencySwapReturn {
   readonly toCurrency: string;
   readonly fromAmount: string;
   readonly toAmount: string;
+  readonly exchangeRate: number | null;
+
   readonly errors: SwapFormErrors;
   readonly handleFromCurrencyChange: (currency: string) => void;
   readonly handleToCurrencyChange: (currency: string) => void;
   readonly handleFromAmountChange: (amount: string) => void;
   readonly handleSwap: () => void;
   readonly handleSubmit: () => Promise<void>;
+  readonly handleRetry: () => void;
   readonly dismissSwapResult: () => void;
 }
 
-export const useCurrencySwap = (): UseCurrencySwapReturn => {
-  const [fetchState, setFetchState] = useState<FetchState>({ status: "idle" });
+export function useCurrencySwap(): UseCurrencySwapReturn {
+  const { fetchState, priceMap, retry } = useTokenPrices();
+
+  const [fromCurrency, setFromCurrency] = useState("");
+  const [toCurrency, setToCurrency] = useState("");
+  const [fromAmount, setFromAmount] = useState("");
+  const [errors, setErrors] = useState<SwapFormErrors>({});
   const [swapState, setSwapState] = useState<SwapState>({ status: "idle" });
 
-  const [fromCurrency, setFromCurrency] = useState<string>("");
-  const [toCurrency, setToCurrency] = useState<string>("");
-  const [fromAmount, setFromAmount] = useState<string>("");
-  const [errors, setErrors] = useState<SwapFormErrors>({});
+  const { exchangeRate, toAmountDisplay } = useSwapCalculation({
+    fromCurrency,
+    toCurrency,
+    fromAmount,
+    priceMap,
+  });
 
-  useEffect(() => {
-    setFetchState({ status: "loading" });
-    fetchTokens()
-      .then((tokens) => setFetchState({ status: "success", data: tokens }))
-      .catch(() =>
-        setFetchState({
-          status: "error",
-          message: "Unable to load token prices.",
-        }),
-      );
-  }, []);
-
-  const priceMap = useMemo<ReadonlyMap<string, number>>(() => {
-    if (fetchState.status !== "success") return new Map();
-    return new Map(fetchState.data.map((t) => [t.currency, t.price]));
-  }, [fetchState]);
-
-  const toAmount = useMemo<string>(() => {
-    const amount = Number(fromAmount);
-    if (!fromAmount || isNaN(amount) || amount <= 0) return "";
-    if (!fromCurrency || !toCurrency) return "";
-
-    const fromPrice = priceMap.get(fromCurrency);
-    const toPrice = priceMap.get(toCurrency);
-    if (!fromPrice || !toPrice) return "";
-
-    return String((amount * fromPrice) / toPrice);
-  }, [fromAmount, fromCurrency, toCurrency, priceMap]);
-
-  // ── Handlers ───────────────────────────────────────────────────────────
   const handleFromCurrencyChange = useCallback((currency: string) => {
     setFromCurrency(currency);
     setErrors((prev) => ({ ...prev, fromCurrency: undefined }));
@@ -75,21 +55,20 @@ export const useCurrencySwap = (): UseCurrencySwapReturn => {
   }, []);
 
   const handleFromAmountChange = useCallback((amount: string) => {
-    const sanitised = amount.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1");
+    const sanitised = amount
+      .replace(/[^0-9.]/g, "")
+      .replace(/^\./, "")
+      .replace(/(\..*)\./g, "$1");
     setFromAmount(sanitised);
     setErrors((prev) => ({ ...prev, fromAmount: undefined }));
   }, []);
 
   const handleSwap = useCallback(() => {
-    const currentFrom = fromCurrency;
-    const currentTo = toCurrency;
-    const currentToAmount = toAmount;
-
-    setFromCurrency(currentTo);
-    setToCurrency(currentFrom);
-    setFromAmount(currentToAmount);
+    setFromCurrency(toCurrency);
+    setToCurrency(fromCurrency);
+    setFromAmount(toAmountDisplay);
     setErrors({});
-  }, [fromCurrency, toCurrency, toAmount]);
+  }, [fromCurrency, toCurrency, toAmountDisplay]);
 
   const handleSubmit = useCallback(async () => {
     const validation = SwapFormSchema.safeParse({
@@ -108,17 +87,21 @@ export const useCurrencySwap = (): UseCurrencySwapReturn => {
       return;
     }
 
-    if (fromCurrency === toCurrency) {
-      setErrors({ toCurrency: "Must be a different token" });
-      return;
-    }
-
     setSwapState({ status: "loading" });
-    await new Promise<void>((resolve) => setTimeout(resolve, 1500));
-    setSwapState({ status: "success" });
-    setFromAmount("");
-    setErrors({});
-  }, [fromCurrency, toCurrency, fromAmount, toAmount]);
+    try {
+      await new Promise<void>((resolve) => setTimeout(resolve, 1500));
+      setSwapState({ status: "success" });
+      setFromAmount("");
+      setErrors({});
+    } catch {
+      setSwapState({
+        status: "error",
+        message: "Swap failed. Please try again.",
+      });
+    }
+  }, [fromCurrency, toCurrency, fromAmount]);
+
+  const handleRetry = retry;
 
   const dismissSwapResult = useCallback(() => {
     setSwapState({ status: "idle" });
@@ -137,15 +120,17 @@ export const useCurrencySwap = (): UseCurrencySwapReturn => {
     fromCurrency,
     toCurrency,
     fromAmount,
-    toAmount,
+    toAmount: toAmountDisplay,
+    exchangeRate,
     errors,
     handleFromCurrencyChange,
     handleToCurrencyChange,
     handleFromAmountChange,
     handleSwap,
     handleSubmit,
+    handleRetry,
     dismissSwapResult,
   };
-};
+}
 
-export type { Token };
+export type { FetchState };

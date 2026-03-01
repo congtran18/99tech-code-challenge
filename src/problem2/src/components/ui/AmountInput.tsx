@@ -1,5 +1,4 @@
 import { memo } from "react";
-import { formatCurrency } from "../utils/format";
 
 interface AmountInputProps {
   readonly id: string;
@@ -7,7 +6,6 @@ interface AmountInputProps {
   readonly value: string;
   readonly readOnly?: boolean;
   readonly error?: string;
-  readonly computedValue?: string;
   readonly onChange?: (value: string) => void;
 }
 
@@ -17,12 +15,8 @@ const AmountInput = memo(function AmountInput({
   value,
   readOnly = false,
   error,
-  computedValue,
   onChange,
 }: AmountInputProps) {
-  const displayValue =
-    readOnly && computedValue ? formatCurrency(Number(computedValue)) : value;
-
   return (
     <div className="amount-input-wrapper">
       <label htmlFor={id} className="field-label">
@@ -33,14 +27,13 @@ const AmountInput = memo(function AmountInput({
       >
         <input
           id={id}
-          type={readOnly ? "text" : "number"}
+          type="text"
           inputMode="decimal"
           className="amount-input"
-          value={displayValue}
+          value={value}
           readOnly={readOnly}
           aria-readonly={readOnly}
           placeholder={readOnly ? "0.00" : "Enter amount"}
-          min={0}
           onChange={onChange ? (e) => onChange(e.target.value) : undefined}
           aria-describedby={error ? `${id}-error` : undefined}
           aria-invalid={!!error}

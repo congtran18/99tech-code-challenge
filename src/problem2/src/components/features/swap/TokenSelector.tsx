@@ -1,5 +1,7 @@
-import { useState, useRef, useEffect, useCallback, memo } from "react";
-import type { Token } from "../types/token.types";
+import { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
+import type { Token } from "../../../types/token.types";
+import { FALLBACK_TOKEN_ICON } from "../../../utils/format";
+import { TokenDropdown } from "./TokenDropdown";
 
 interface TokenSelectorProps {
   readonly id: string;
@@ -9,9 +11,6 @@ interface TokenSelectorProps {
   readonly error?: string;
   readonly onChange: (currency: string) => void;
 }
-
-const FALLBACK_ICON =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a78bfa'%3E%3Ccircle cx='12' cy='12' r='10' fill='%231e1b4b'/%3E%3Ctext x='12' y='16' text-anchor='middle' font-size='10' fill='%23a78bfa'%3E%3F%3C/text%3E%3C/svg%3E";
 
 const TokenSelector = memo(function TokenSelector({
   id,
@@ -25,12 +24,28 @@ const TokenSelector = memo(function TokenSelector({
   const [searchQuery, setSearchQuery] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
-  const selected = tokens.find((t) => t.currency === value);
-
-  const filteredTokens = tokens.filter((t) =>
-    t.currency.toLowerCase().includes(searchQuery.toLowerCase()),
+  const selected = useMemo(
+    () => tokens.find((t) => t.currency === value),
+    [tokens, value],
   );
+
+  const filteredTokens = useMemo(
+    () =>
+      tokens.filter((t) =>
+        t.currency.toLowerCase().includes(searchQuery.toLowerCase()),
+      ),
+    [tokens, searchQuery],
+  );
+
+  const closeDropdown = useCallback((returnFocus = true) => {
+    setIsOpen(false);
+    setSearchQuery("");
+    if (returnFocus) {
+      setTimeout(() => triggerRef.current?.focus(), 0);
+    }
+  }, []);
 
   const handleOpen = useCallback(() => {
     setIsOpen(true);
@@ -41,10 +56,9 @@ const TokenSelector = memo(function TokenSelector({
   const handleSelect = useCallback(
     (currency: string) => {
       onChange(currency);
-      setIsOpen(false);
-      setSearchQuery("");
+      closeDropdown(true);
     },
-    [onChange],
+    [onChange, closeDropdown],
   );
 
   // Close on outside click
@@ -55,16 +69,22 @@ const TokenSelector = memo(function TokenSelector({
         !containerRef.current.contains(e.target as Node)
       ) {
         setIsOpen(false);
+        setSearchQuery("");
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Close on Escape
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === "Escape") setIsOpen(false);
-  }, []);
+  // Close on Escape — return focus to trigger
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Escape" && isOpen) {
+        closeDropdown(true);
+      }
+    },
+    [isOpen, closeDropdown],
+  );
 
   return (
     <div
@@ -78,6 +98,7 @@ const TokenSelector = memo(function TokenSelector({
 
       <button
         id={id}
+        ref={triggerRef}
         type="button"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
@@ -92,7 +113,7 @@ const TokenSelector = memo(function TokenSelector({
               alt={selected.currency}
               className="token-icon"
               onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src = FALLBACK_ICON;
+                (e.currentTarget as HTMLImageElement).src = FALLBACK_TOKEN_ICON;
               }}
             />
             <span className="token-symbol">{selected.currency}</span>
@@ -119,50 +140,15 @@ const TokenSelector = memo(function TokenSelector({
       )}
 
       {isOpen && (
-        <div className="dropdown" role="listbox" aria-label={label}>
-          <div className="dropdown-search-wrapper">
-            <input
-              ref={searchRef}
-              type="search"
-              className="dropdown-search"
-              placeholder="Search token..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              aria-label="Search tokens"
-            />
-          </div>
-          <ul className="dropdown-list">
-            {filteredTokens.length === 0 ? (
-              <li className="dropdown-empty">No tokens found</li>
-            ) : (
-              filteredTokens.map((token) => (
-                <li
-                  key={token.currency}
-                  role="option"
-                  aria-selected={token.currency === value}
-                  className={`dropdown-item ${token.currency === value ? "dropdown-item--active" : ""}`}
-                  onClick={() => handleSelect(token.currency)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ")
-                      handleSelect(token.currency);
-                  }}
-                  tabIndex={0}
-                >
-                  <img
-                    src={token.iconUrl}
-                    alt={token.currency}
-                    className="token-icon"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src = FALLBACK_ICON;
-                    }}
-                  />
-                  <span className="token-symbol">{token.currency}</span>
-                  <span className="token-price">${token.price.toFixed(4)}</span>
-                </li>
-              ))
-            )}
-          </ul>
-        </div>
+        <TokenDropdown
+          label={label}
+          tokens={filteredTokens}
+          selectedValue={value}
+          searchRef={searchRef}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onSelect={handleSelect}
+        />
       )}
     </div>
   );

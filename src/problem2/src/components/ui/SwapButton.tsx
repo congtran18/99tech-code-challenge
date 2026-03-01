@@ -2,18 +2,13 @@ import { memo } from "react";
 
 interface SwapButtonProps {
   readonly isLoading: boolean;
-  readonly onClick: () => void;
 }
 
-const SwapButton = memo(function SwapButton({
-  isLoading,
-  onClick,
-}: SwapButtonProps) {
+const SwapButton = memo(function SwapButton({ isLoading }: SwapButtonProps) {
   return (
     <button
-      type="button"
+      type="submit"
       className={`swap-btn ${isLoading ? "swap-btn--loading" : ""}`}
-      onClick={onClick}
       disabled={isLoading}
       aria-busy={isLoading}
       aria-label={isLoading ? "Processing swap..." : "Confirm swap"}

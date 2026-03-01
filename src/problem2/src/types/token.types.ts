@@ -26,16 +26,21 @@ export type SwapState =
   | { status: "success" }
   | { status: "error"; message: string };
 
-export const SwapFormSchema = z.object({
-  fromCurrency: z.string().min(1, "Please select a source token"),
-  toCurrency: z.string().min(1, "Please select a destination token"),
-  fromAmount: z
-    .string()
-    .min(1, "Amount is required")
-    .refine((v) => !isNaN(Number(v)) && Number(v) > 0, {
-      message: "Amount must be a positive number",
-    }),
-});
+export const SwapFormSchema = z
+  .object({
+    fromCurrency: z.string().min(1, "Please select a source token"),
+    toCurrency: z.string().min(1, "Please select a destination token"),
+    fromAmount: z
+      .string()
+      .min(1, "Amount is required")
+      .refine((v) => !isNaN(Number(v)) && Number(v) > 0, {
+        message: "Amount must be a positive number",
+      }),
+  })
+  .refine((d) => d.fromCurrency !== d.toCurrency, {
+    message: "Must be a different token",
+    path: ["toCurrency"],
+  });
 
 export type SwapFormValues = z.infer<typeof SwapFormSchema>;
 export type SwapFormErrors = Partial<Record<keyof SwapFormValues, string>>;
