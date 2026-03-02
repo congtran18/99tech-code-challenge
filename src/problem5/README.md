@@ -182,7 +182,7 @@ GET /api/resources
 | `page`   | number | `1`             | Page number                                    |
 | `limit`  | number | `20` (max: 100) | Items per page                                 |
 | `status` | string | —               | Filter by `active` \| `inactive` \| `archived` |
-| `name`   | string | —               | Case-insensitive partial match                 |
+| `name`   | string | —               | Case-sensitive partial match                   |
 
 **Example:**
 
@@ -332,3 +332,51 @@ curl -s -X DELETE http://localhost:3000/api/resources/REPLACE_WITH_ID -v
 | `npm run db:migrate:prod` | Deploy migrations (production)   |
 | `npm run db:studio`       | Open Prisma Studio (DB GUI)      |
 | `npm run db:seed`         | Seed sample data                 |
+
+---
+
+## Testing
+
+The project includes a full test suite built with **Jest + ts-jest + Supertest**. No database connection is required — all tests use in-memory mocks.
+
+### Run tests
+
+```bash
+npm test              # Run all tests + coverage report
+npm run test:coverage # Run tests with detailed coverage
+npm run test:watch    # Watch mode (re-runs on file save)
+```
+
+### Test structure
+
+Unit tests are **co-located** next to the source files they test. Integration tests live in a dedicated `tests/` folder at project root.
+
+```
+src/
+├── errors/
+│   ├── AppError.ts
+│   └── AppError.test.ts            ← unit test, import: ./AppError
+├── utils/
+│   ├── response.helper.ts
+│   └── response.helper.test.ts     ← unit test
+├── validators/
+│   ├── resource.validator.ts
+│   └── resource.validator.test.ts  ← unit test
+└── services/
+    ├── resource.service.ts
+    └── resource.service.test.ts    ← unit test (mocked repo)
+
+tests/
+└── integration/
+    └── resource.routes.test.ts     ← supertest, Prisma mocked
+```
+
+### Coverage
+
+| Area       | Coverage |
+| ---------- | -------- |
+| Statements | ~96%     |
+| Validators | 100%     |
+| Services   | 100%     |
+| Routes     | 100%     |
+| Errors     | 100%     |

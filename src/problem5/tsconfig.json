@@ -22,6 +22,6 @@
     "sourceMap": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "src/database/seed.ts"]
+  "include": ["src/**/*", "tests/**/*"],
+  "exclude": ["node_modules", "dist", "src/database/seed.ts", "src/**/*.test.ts", "tests/**/*.test.ts"]
 }

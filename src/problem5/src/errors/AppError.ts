@@ -1,9 +1,3 @@
-/**
- * Operational error with a specific HTTP status code.
- *
- * Distinguishes predictable user-facing errors (isOperational = true) from
- * programming bugs so the global error middleware knows what to expose.
- */
 export class AppError extends Error {
   public readonly statusCode: number;
   public readonly isOperational: boolean;
